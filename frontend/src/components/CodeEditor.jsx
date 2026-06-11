@@ -1,26 +1,44 @@
 import Editor from "@monaco-editor/react";
 
 function CodeEditor({
-  roomId,
   code,
   handleChange,
-  userCount,
   runCodeHandler,
 }) {
   return (
-    <div>
-      <h2>Room ID: {roomId}</h2>
+    <div
+      className="panel"
+      style={{
+        flex: 2,
+        padding: "15px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "10px",
+        }}
+      >
+        <h3>Editor</h3>
 
-      <h3>
-        Users Online: {userCount}
-      </h3>
-
-      <button onClick={runCodeHandler}>
-        Run Code
-      </button>
+        <button
+          onClick={runCodeHandler}
+          style={{
+            background: "#4f46e5",
+            color: "white",
+            border: "none",
+            padding: "10px 20px",
+            borderRadius: "8px",
+          }}
+        >
+          Run Code
+        </button>
+      </div>
 
       <Editor
-        height="70vh"
+        height="75vh"
+        theme="vs-dark"
         language="javascript"
         value={code}
         onChange={handleChange}
