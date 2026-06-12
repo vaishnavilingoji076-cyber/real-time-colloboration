@@ -39,6 +39,7 @@ function ChatBox({
         {messages.map(
           (msg, index) => (
             <p key={index}>
+            <strong>{msg.sender}</strong>
               {msg}
             </p>
           )

@@ -16,12 +16,62 @@ const io = new Server(server, {
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("User Connected:", socket.id);
+const roomUsers = {};
 
+io.on("connection", (socket) => {
+
+  console.log(
+    "User Connected:",
+    socket.id
+  );
+
+  // Join Room
+  socket.on(
+    "join-room",
+    ({ roomId, username }) => {
+
+      socket.join(roomId);
+
+      socket.roomId = roomId;
+      socket.username = username;
+
+      if (!roomUsers[roomId]) {
+        roomUsers[roomId] = [];
+      }
+
+      roomUsers[roomId].push(
+        username
+      );
+
+      io.to(roomId).emit(
+        "user-list",
+        roomUsers[roomId]
+      );
+
+      const room =
+        io.sockets.adapter.rooms.get(
+          roomId
+        );
+
+      const userCount =
+        room ? room.size : 0;
+
+      io.to(roomId).emit(
+        "room-users",
+        userCount
+      );
+
+      console.log(
+        `${username} joined room ${roomId}`
+      );
+    }
+  );
+
+  // Chat
   socket.on(
     "send-message",
-    ({ roomId, message })=>{
+    ({ roomId, message }) => {
+
       io.to(roomId).emit(
         "receive-message",
         message
@@ -29,54 +79,80 @@ io.on("connection", (socket) => {
     }
   );
 
-  // Join Room
-  socket.on("join-room", (roomId) => {
-    socket.join(roomId);
-
-    const room = io.sockets.adapter.rooms.get(roomId);
-    const userCount = room ? room.size : 0;
-
-    io.to(roomId).emit("room-users", userCount);
-
-    console.log(`${socket.id} joined room ${roomId}`);
-  });
-
   // Code Sync
-  socket.on("code-change", ({ roomId, code }) => {
-    socket.to(roomId).emit("receive-code", code);
-  });
+  socket.on(
+    "code-change",
+    ({ roomId, code }) => {
 
-  // Update user count before disconnect
-  socket.on("disconnecting", () => {
-    socket.rooms.forEach((roomId) => {
-      if (roomId !== socket.id) {
-        setTimeout(() => {
-          const room = io.sockets.adapter.rooms.get(roomId);
-
-          const userCount = room ? room.size : 0;
-
-          io.to(roomId).emit("room-users", userCount);
-        }, 100);
-      }
-    });
-  });
+      socket.to(roomId).emit(
+        "receive-code",
+        code
+      );
+    }
+  );
 
   // Disconnect
-  socket.on("disconnect", () => {
-    console.log("User Disconnected:", socket.id);
-  });
+  socket.on(
+    "disconnect",
+    () => {
+
+      const roomId =
+        socket.roomId;
+
+      if (
+        roomId &&
+        roomUsers[roomId]
+      ) {
+
+        roomUsers[roomId] =
+          roomUsers[roomId].filter(
+            (user) =>
+              user !== socket.username
+          );
+
+        io.to(roomId).emit(
+          "user-list",
+          roomUsers[roomId]
+        );
+
+        const room =
+          io.sockets.adapter.rooms.get(
+            roomId
+          );
+
+        const userCount =
+          room ? room.size : 0;
+
+        io.to(roomId).emit(
+          "room-users",
+          userCount
+        );
+      }
+
+      console.log(
+        "User Disconnected:",
+        socket.id
+      );
+    }
+  );
+
 });
 
+// Code Runner API
 app.post("/run", (req, res) => {
+
   const { code } = req.body;
 
   try {
+
     let output = "";
 
-    const originalLog = console.log;
+    const originalLog =
+      console.log;
 
     console.log = (...args) => {
-      output += args.join(" ") + "\n";
+      output +=
+        args.join(" ") + "\n";
     };
 
     eval(code);
@@ -87,7 +163,9 @@ app.post("/run", (req, res) => {
       success: true,
       output,
     });
+
   } catch (error) {
+
     res.json({
       success: false,
       output: error.message,
@@ -96,5 +174,7 @@ app.post("/run", (req, res) => {
 });
 
 server.listen(5000, () => {
-  console.log("Server Running On Port 5000");
+  console.log(
+    "Server Running On Port 5000"
+  );
 });
