@@ -4,6 +4,7 @@ function CodeEditor({
   code,
   handleChange,
   runCodeHandler,
+  language,
 }) {
   return (
     <div
@@ -39,7 +40,7 @@ function CodeEditor({
       <Editor
         height="75vh"
         theme="vs-dark"
-        language="javascript"
+        language={language}
         value={code}
         onChange={handleChange}
       />

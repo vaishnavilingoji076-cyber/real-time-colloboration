@@ -25,42 +25,129 @@ function App() {
 
   // Chat States
   const [messages, setMessages] = useState([]);
+  const [typingUser, setTypingUser] = useState("");
 
+  // Language State
+  const [language, setLanguage] =
+    useState("javascript");
+
+  // =========================
   // Socket Listeners
+  // =========================
   useEffect(() => {
-    const handleReceiveCode = (newCode) => {
+    const handleReceiveCode = (
+      newCode
+    ) => {
       setCode(newCode);
     };
 
-    const handleRoomUsers = (count) => {
+    const handleRoomUsers = (
+      count
+    ) => {
       setUserCount(count);
     };
 
-    const handleReceiveMessage = (message) => {
-      setMessages((prev) => [...prev, message]);
+    const handleReceiveMessage = (
+      message
+    ) => {
+      setMessages((prev) => [
+        ...prev,
+        message,
+      ]);
     };
 
-    const handleUserList = (userList) => {
+    const handleUserList = (
+      userList
+    ) => {
       setUsers(userList);
     };
 
-    socket.on("receive-code", handleReceiveCode);
-    socket.on("room-users", handleRoomUsers);
-    socket.on("receive-message", handleReceiveMessage);
-    socket.on("user-list", handleUserList);
+    const handleUserTyping = (
+      username
+    ) => {
+      setTypingUser(username);
+
+      setTimeout(() => {
+        setTypingUser("");
+      }, 1000);
+    };
+
+    socket.on(
+      "receive-code",
+      handleReceiveCode
+    );
+
+    socket.on(
+      "room-users",
+      handleRoomUsers
+    );
+
+    socket.on(
+      "receive-message",
+      handleReceiveMessage
+    );
+
+    socket.on(
+      "user-list",
+      handleUserList
+    );
+
+    socket.on(
+      "user-typing",
+      handleUserTyping
+    );
 
     return () => {
-      socket.off("receive-code", handleReceiveCode);
-      socket.off("room-users", handleRoomUsers);
-      socket.off("receive-message", handleReceiveMessage);
-      socket.off("user-list", handleUserList);
+      socket.off(
+        "receive-code",
+        handleReceiveCode
+      );
+
+      socket.off(
+        "room-users",
+        handleRoomUsers
+      );
+
+      socket.off(
+        "receive-message",
+        handleReceiveMessage
+      );
+
+      socket.off(
+        "user-list",
+        handleUserList
+      );
+
+      socket.off(
+        "user-typing",
+        handleUserTyping
+      );
     };
   }, []);
 
+  // =========================
+  // Save Code To Local Storage
+  // =========================
+  useEffect(() => {
+    if (!roomId) return;
+
+    localStorage.setItem(
+      roomId,
+      code
+    );
+  }, [code, roomId]);
+
+  // =========================
   // Join Room
+  // =========================
   const joinRoom = () => {
-    if (!roomId.trim() || !username.trim()) {
-      alert("Please enter Username and Room ID");
+    if (
+      !roomId.trim() ||
+      !username.trim()
+    ) {
+      alert(
+        "Please enter Username and Room ID"
+      );
       return;
     }
 
@@ -69,10 +156,49 @@ function App() {
       username,
     });
 
+    const savedCode =
+      localStorage.getItem(roomId);
+
+    if (savedCode) {
+      setCode(savedCode);
+    }
+
     setJoined(true);
   };
 
+  // =========================
+  // Leave Room
+  // =========================
+  const leaveRoom = () => {
+    setJoined(false);
+
+    setRoomId("");
+    setUsername("");
+
+    setCode("");
+    setOutput("");
+
+    setMessages([]);
+    setUsers([]);
+
+    setTypingUser("");
+    setUserCount(0);
+  };
+
+  // =========================
+  // Copy Room ID
+  // =========================
+  const copyRoomId = () => {
+    navigator.clipboard.writeText(
+      roomId
+    );
+
+    alert("Room ID copied!");
+  };
+
+  // =========================
   // Code Change
+  // =========================
   const handleChange = (value) => {
     setCode(value);
 
@@ -82,34 +208,58 @@ function App() {
     });
   };
 
-  // Send Chat Message
-  const sendMessage = (message) => {
-    socket.emit("send-message", {
+  // =========================
+  // Send Message
+  // =========================
+  const sendMessage = (
+    message
+  ) => {
+    socket.emit(
+      "send-message",
+      {
+        roomId,
+        sender: username,
+        text: message,
+      }
+    );
+  };
+
+  // =========================
+  // Typing Event
+  // =========================
+  const handleTyping = () => {
+    socket.emit("typing", {
       roomId,
-      username:{
-        sender:username,
-        text:message,
-      },
+      username,
     });
   };
 
+  // =========================
   // Run Code
-  const runCodeHandler = async () => {
-    try {
-      const result = await runCode(code);
+  // =========================
+  const runCodeHandler =
+    async () => {
+      try {
+        const result =
+          await runCode(code);
 
-      setOutput(
-        result?.output ||
-        result?.data?.output ||
-        "No Output"
-      );
-    } catch (error) {
-      console.error(error);
-      setOutput("Error running code");
-    }
-  };
+        setOutput(
+          result?.output ||
+            result?.data?.output ||
+            "No Output"
+        );
+      } catch (error) {
+        console.error(error);
 
+        setOutput(
+          "Error running code"
+        );
+      }
+    };
+
+  // =========================
   // Join Screen
+  // =========================
   if (!joined) {
     return (
       <JoinRoom
@@ -122,30 +272,86 @@ function App() {
     );
   }
 
-  // Main Editor Screen
+  // =========================
+  // Main Screen
+  // =========================
   return (
     <div className="h-screen flex flex-col">
+      <div
+        style={{
+          display: "flex",
+          justifyContent:
+            "space-between",
+          padding: "10px",
+          background: "#111827",
+          color: "white",
+        }}
+      >
+        <div>
+          Room ID: {roomId}
+        </div>
+
+        <div>
+          <button
+            onClick={copyRoomId}
+            style={{
+              marginRight: "10px",
+            }}
+          >
+            Copy Room ID
+          </button>
+
+          <button
+            onClick={leaveRoom}
+          >
+            Leave Room
+          </button>
+        </div>
+      </div>
 
       <CodeEditor
         roomId={roomId}
         code={code}
-        handleChange={handleChange}
+        handleChange={
+          handleChange
+        }
         userCount={userCount}
         users={users}
-        runCodeHandler={runCodeHandler}
+        runCodeHandler={
+          runCodeHandler
+        }
+        language={language}
+        setLanguage={
+          setLanguage
+        }
       />
 
       <OutputConsole
         output={output}
       />
 
-      <ChatBox
-        messages={messages}
-        sendMessage={sendMessage}
-      />
+      <div
+        style={{
+          display: "flex",
+          gap: "20px",
+          padding: "10px",
+        }}
+      >
+        <ChatBox
+          messages={messages}
+          sendMessage={
+            sendMessage
+          }
+          typingUser={
+            typingUser
+          }
+          handleTyping={
+            handleTyping
+          }
+        />
 
-      <UserList users={users}/>
-
+        <UserList users={users} />
+      </div>
     </div>
   );
 }

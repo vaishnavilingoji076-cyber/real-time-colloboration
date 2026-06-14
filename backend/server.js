@@ -16,20 +16,21 @@ const io = new Server(server, {
   },
 });
 
+// Store room users
 const roomUsers = {};
 
 io.on("connection", (socket) => {
-
   console.log(
     "User Connected:",
     socket.id
   );
 
-  // Join Room
+  // ======================
+  // JOIN ROOM
+  // ======================
   socket.on(
     "join-room",
     ({ roomId, username }) => {
-
       socket.join(roomId);
 
       socket.roomId = roomId;
@@ -61,41 +62,73 @@ io.on("connection", (socket) => {
         userCount
       );
 
+      //join nofication
+      io.to(roomId).emit(
+        "receive-message",
+        {
+          sender:"System",
+          text:`${username} joined the room`,
+        }
+      );
+
       console.log(
         `${username} joined room ${roomId}`
       );
     }
   );
 
-  // Chat
+  // ======================
+  // CHAT
+  // ======================
   socket.on(
     "send-message",
-    ({ roomId, message }) => {
-
+    ({ roomId, sender, text }) => {
       io.to(roomId).emit(
         "receive-message",
-        message
+        {
+          sender,
+          text,
+        }
       );
     }
   );
 
-  // Code Sync
+  // ======================
+  // TYPING INDICATOR
+  // ======================
+  socket.on(
+    "typing",
+    ({ roomId, username }) => {
+      socket
+        .to(roomId)
+        .emit(
+          "user-typing",
+          username
+        );
+    }
+  );
+
+  // ======================
+  // LIVE CODE SYNC
+  // ======================
   socket.on(
     "code-change",
     ({ roomId, code }) => {
-
-      socket.to(roomId).emit(
-        "receive-code",
-        code
-      );
+      socket
+        .to(roomId)
+        .emit(
+          "receive-code",
+          code
+        );
     }
   );
 
-  // Disconnect
+  // ======================
+  // DISCONNECT
+  // ======================
   socket.on(
     "disconnect",
     () => {
-
       const roomId =
         socket.roomId;
 
@@ -103,11 +136,11 @@ io.on("connection", (socket) => {
         roomId &&
         roomUsers[roomId]
       ) {
-
         roomUsers[roomId] =
           roomUsers[roomId].filter(
             (user) =>
-              user !== socket.username
+              user !==
+              socket.username
           );
 
         io.to(roomId).emit(
@@ -127,7 +160,23 @@ io.on("connection", (socket) => {
           "room-users",
           userCount
         );
+
+        if (
+          roomUsers[roomId]
+            .length === 0
+        ) {
+          delete roomUsers[roomId];
+        }
       }
+
+      //leave notification
+      io.to(roomId).emit(
+        "receive-message",
+        {
+          sender:"System",
+          text:`${socket.username} left the room`,
+        }
+      )
 
       console.log(
         "User Disconnected:",
@@ -135,46 +184,58 @@ io.on("connection", (socket) => {
       );
     }
   );
-
 });
 
-// Code Runner API
-app.post("/run", (req, res) => {
+// ======================
+// CODE RUNNER API
+// ======================
+app.post(
+  "/run",
+  (req, res) => {
+    const { code } =
+      req.body;
 
-  const { code } = req.body;
+    try {
+      let output = "";
 
-  try {
+      const originalLog =
+        console.log;
 
-    let output = "";
+      console.log = (
+        ...args
+      ) => {
+        output +=
+          args.join(" ") +
+          "\n";
+      };
 
-    const originalLog =
-      console.log;
+      eval(code);
 
-    console.log = (...args) => {
-      output +=
-        args.join(" ") + "\n";
-    };
+      console.log =
+        originalLog;
 
-    eval(code);
-
-    console.log = originalLog;
-
-    res.json({
-      success: true,
-      output,
-    });
-
-  } catch (error) {
-
-    res.json({
-      success: false,
-      output: error.message,
-    });
+      res.json({
+        success: true,
+        output,
+      });
+    } catch (error) {
+      res.json({
+        success: false,
+        output:
+          error.message,
+      });
+    }
   }
-});
+);
 
-server.listen(5000, () => {
-  console.log(
-    "Server Running On Port 5000"
-  );
-});
+// ======================
+// SERVER START
+// ======================
+server.listen(
+  5000,
+  () => {
+    console.log(
+      "Server Running On Port 5000"
+    );
+  }
+);
