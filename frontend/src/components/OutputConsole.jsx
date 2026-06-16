@@ -1,4 +1,4 @@
-function OutputConsole({ output }) {
+function OutputConsole({ output, clearOutput }) {
   return (
     <div
       className="panel"
@@ -19,7 +19,27 @@ function OutputConsole({ output }) {
           borderRadius: "8px",
         }}
       >
-        <pre>{output}</pre>
+        <pre
+          style={{
+            color: output.includes("Error")
+              ? "red"
+              : "#00ff88",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {output || "Run code to see output"}
+        </pre>
+
+        <button
+          onClick={clearOutput}
+          style={{
+            marginTop: "10px",
+            padding: "8px 16px",
+            cursor: "pointer",
+          }}
+        >
+          Clear Console
+        </button>
       </div>
     </div>
   );

@@ -6,9 +6,10 @@ import CodeEditor from "./components/CodeEditor";
 import OutputConsole from "./components/OutputConsole";
 import ChatBox from "./components/ChatBox";
 import UserList from "./components/UserList";
-
+import Sidebar from "./components/Sidebar";
 import { runCode } from "./services/codeService";
 
+import { codeTemplates } from "./data/codeTemplates";
 function App() {
   // Room States
   const [roomId, setRoomId] = useState("");
@@ -257,6 +258,19 @@ function App() {
       }
     };
 
+
+    //language
+const handleLanguageChange = (
+  newLanguage
+) => {
+
+  setLanguage(newLanguage);
+
+  setCode(
+    codeTemplates[newLanguage]
+  );
+};
+    
   // =========================
   // Join Screen
   // =========================
@@ -349,6 +363,17 @@ function App() {
             handleTyping
           }
         />
+      
+      <Sidebar
+  roomId={roomId}
+  language={language}
+  setLanguage={
+    handleLanguageChange
+  }
+  copyRoomId={copyRoomId}
+  leaveRoom={leaveRoom}
+/>
+
 
         <UserList users={users} />
       </div>
