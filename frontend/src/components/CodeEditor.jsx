@@ -1,6 +1,7 @@
 import Editor from "@monaco-editor/react";
 
 function CodeEditor({
+  
   code,
   handleChange,
   runCodeHandler,

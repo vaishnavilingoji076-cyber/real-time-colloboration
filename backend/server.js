@@ -241,33 +241,31 @@
 // );
 
 
-const express=require("express");
-const cors=require("cors");
-const http=require("http");
-const { server }=require("socket.on");
+const express = require("express");
+const cors = require("cors");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
 
-const codeRoutes=require("./routes/codeRoutes");
-const socketHandler=require("./socket/sockethandler");
+const codeRoutes = require("./routes/codeRoutes");
+const socketHandler = require("./socket/socketHandler");
 
-const app=express();
+const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/",codeRoutes);
+app.use("/", codeRoutes);
 
-const server=createServer(app);
+const server = createServer(app);
 
-const io=new Server(server,{
-  cors:{
+const io = new Server(server, {
+  cors: {
     origin: "*",
   },
 });
 
 socketHandler(io);
 
-server.listen(5000,()=>{
-  console.log(
-    "server is running on port 5000"
-  );
+server.listen(5000, () => {
+  console.log("Server is running on port 5000");
 });
